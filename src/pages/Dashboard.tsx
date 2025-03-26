@@ -235,7 +235,7 @@ const Dashboard = () => {
                         
                         {hypothesis.status === 'In Progress' && (
                           <Button size="sm" variant="outline">
-                            <Flask className="h-4 w-4 mr-2" />
+                            <TestTube className="h-4 w-4 mr-2" />
                             Test Design
                           </Button>
                         )}
@@ -306,7 +306,7 @@ const Dashboard = () => {
                           </Button>
                           
                           <Button size="sm" variant="outline">
-                            <Flask className="h-4 w-4 mr-2" />
+                            <TestTube className="h-4 w-4 mr-2" />
                             Test Design
                           </Button>
                         </div>
