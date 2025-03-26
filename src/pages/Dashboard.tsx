@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   PencilLine, 
@@ -11,7 +12,8 @@ import {
   Timer, 
   Target,
   AlertCircle,
-  ChevronRight
+  ChevronRight,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,45 +30,45 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Navbar from '@/components/Navbar';
 import GlassMorphicCard from '@/components/GlassMorphicCard';
-import AnimatedGradient from '@/components/AnimatedGradient';
-
-const hypotheses = [
-  {
-    id: 1,
-    title: "Adding product recommendations increases average order value",
-    status: "In Progress",
-    progress: 65,
-    daysLeft: 8,
-    confidence: 72,
-  },
-  {
-    id: 2,
-    title: "Users prefer dark mode UI for our analytics dashboard",
-    status: "Validated",
-    progress: 100,
-    daysLeft: 0,
-    confidence: 89,
-  },
-  {
-    id: 3,
-    title: "Email reminders increase subscription renewals by 30%",
-    status: "Rejected",
-    progress: 100,
-    daysLeft: 0,
-    confidence: 32,
-  },
-  {
-    id: 4,
-    title: "Mobile app users convert at 2x the rate of web users",
-    status: "Planned",
-    progress: 0,
-    daysLeft: 14,
-    confidence: 0,
-  },
-];
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import { hypothesesService } from '@/services/supabase';
+import { Hypothesis, HypothesisStatus } from '@/types/supabase';
 
 const Dashboard = () => {
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
+  const [hypotheses, setHypotheses] = useState<Hypothesis[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('all');
+  
+  const fetchHypotheses = async () => {
+    try {
+      setLoading(true);
+      let data: Hypothesis[];
+      
+      if (activeTab === 'all') {
+        data = await hypothesesService.getAll();
+      } else {
+        data = await hypothesesService.getByStatus(activeTab as HypothesisStatus);
+      }
+      
+      setHypotheses(data);
+    } catch (error) {
+      console.error('Error fetching hypotheses:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load hypotheses. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    fetchHypotheses();
+  }, [activeTab]);
   
   const filteredHypotheses = hypotheses.filter(hypothesis => 
     hypothesis.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -98,6 +100,116 @@ const Dashboard = () => {
     }
   };
   
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
+  
+  const renderHypothesisList = (hypotheses: Hypothesis[]) => {
+    if (loading) {
+      return Array(3).fill(0).map((_, index) => (
+        <Card key={`skeleton-${index}`} className="overflow-hidden animate-pulse">
+          <CardHeader className="pb-3">
+            <Skeleton className="h-6 w-3/4 mb-2" />
+            <Skeleton className="h-4 w-1/4" />
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col sm:flex-row sm:justify-between gap-4 sm:items-center">
+              <Skeleton className="h-4 w-full mb-2" />
+              <Skeleton className="h-2 w-full" />
+            </div>
+          </CardContent>
+          <CardFooter className="border-t pt-4 pb-4">
+            <Skeleton className="h-8 w-24 mr-2" />
+            <Skeleton className="h-8 w-24" />
+          </CardFooter>
+        </Card>
+      ));
+    }
+    
+    if (hypotheses.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground mb-4">No hypotheses found.</p>
+          <Button asChild>
+            <Link to="/hypothesis-builder">
+              <Plus className="h-4 w-4 mr-2" />
+              Create your first hypothesis
+            </Link>
+          </Button>
+        </div>
+      );
+    }
+    
+    return hypotheses.map((hypothesis) => (
+      <Card key={hypothesis.id} className="overflow-hidden animate-fade-in">
+        <CardHeader className="pb-3">
+          <div className="flex justify-between items-start">
+            <CardTitle className="text-xl">{hypothesis.title}</CardTitle>
+            <Badge className={getStatusColor(hypothesis.status)}>
+              <span className="flex items-center">
+                {getStatusIcon(hypothesis.status)}
+                <span className="ml-1">{hypothesis.status}</span>
+              </span>
+            </Badge>
+          </div>
+        </CardHeader>
+        
+        <CardContent>
+          <div className="flex flex-col sm:flex-row sm:justify-between gap-4 sm:items-center">
+            <div className="flex-1">
+              <div className="mb-1 flex justify-between items-center">
+                <span className="text-sm">Test Progress</span>
+                <span className="text-sm font-medium">{hypothesis.progress}%</span>
+              </div>
+              <Progress value={hypothesis.progress} className="h-2" />
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              {hypothesis.status === 'In Progress' && (
+                <div className="flex items-center space-x-2 text-sm text-amber-600">
+                  <Clock className="h-4 w-4" />
+                  <span>{hypothesis.days_left} days left</span>
+                </div>
+              )}
+              
+              {(hypothesis.status === 'Validated' || hypothesis.status === 'Rejected') && (
+                <div className="flex items-center space-x-2 text-sm">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>{hypothesis.confidence}% confidence</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+        
+        <CardFooter className="border-t pt-4 pb-4 flex justify-between">
+          <div className="flex space-x-2">
+            <Button size="sm" variant="outline">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              View Results
+            </Button>
+            
+            {hypothesis.status === 'In Progress' && (
+              <Button size="sm" variant="outline">
+                <TestTube className="h-4 w-4 mr-2" />
+                Test Design
+              </Button>
+            )}
+          </div>
+          
+          <Button size="sm" variant="ghost" className="text-muted-foreground">
+            Details
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
+        </CardFooter>
+      </Card>
+    ));
+  };
+  
+  // Count statistics
+  const validatedCount = hypotheses.filter(h => h.status === 'Validated').length;
+  const inProgressCount = hypotheses.filter(h => h.status === 'In Progress').length;
+  
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -119,8 +231,14 @@ const Dashboard = () => {
               <Badge variant="outline">Total</Badge>
             </div>
             
-            <h3 className="text-2xl font-semibold">{hypotheses.length}</h3>
-            <p className="text-muted-foreground text-sm">Hypotheses</p>
+            {loading ? (
+              <Skeleton className="h-8 w-16 mb-1" />
+            ) : (
+              <>
+                <h3 className="text-2xl font-semibold">{hypotheses.length}</h3>
+                <p className="text-muted-foreground text-sm">Hypotheses</p>
+              </>
+            )}
           </GlassMorphicCard>
           
           <GlassMorphicCard className="p-6 col-span-1 animate-fade-in" style={{ animationDelay: '200ms' }}>
@@ -131,10 +249,14 @@ const Dashboard = () => {
               <Badge variant="outline" className="border-green-200 text-green-600">Validated</Badge>
             </div>
             
-            <h3 className="text-2xl font-semibold">
-              {hypotheses.filter(h => h.status === 'Validated').length}
-            </h3>
-            <p className="text-muted-foreground text-sm">Validated Hypotheses</p>
+            {loading ? (
+              <Skeleton className="h-8 w-16 mb-1" />
+            ) : (
+              <>
+                <h3 className="text-2xl font-semibold">{validatedCount}</h3>
+                <p className="text-muted-foreground text-sm">Validated Hypotheses</p>
+              </>
+            )}
           </GlassMorphicCard>
           
           <GlassMorphicCard className="p-6 col-span-1 animate-fade-in" style={{ animationDelay: '300ms' }}>
@@ -145,20 +267,24 @@ const Dashboard = () => {
               <Badge variant="outline" className="border-blue-200 text-blue-600">In Progress</Badge>
             </div>
             
-            <h3 className="text-2xl font-semibold">
-              {hypotheses.filter(h => h.status === 'In Progress').length}
-            </h3>
-            <p className="text-muted-foreground text-sm">Active Tests</p>
+            {loading ? (
+              <Skeleton className="h-8 w-16 mb-1" />
+            ) : (
+              <>
+                <h3 className="text-2xl font-semibold">{inProgressCount}</h3>
+                <p className="text-muted-foreground text-sm">Active Tests</p>
+              </>
+            )}
           </GlassMorphicCard>
         </div>
         
-        <Tabs defaultValue="all" className="w-full mb-8">
+        <Tabs defaultValue="all" className="w-full mb-8" onValueChange={handleTabChange}>
           <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
             <TabsList>
               <TabsTrigger value="all">All Hypotheses</TabsTrigger>
-              <TabsTrigger value="active">Active</TabsTrigger>
-              <TabsTrigger value="validated">Validated</TabsTrigger>
-              <TabsTrigger value="rejected">Rejected</TabsTrigger>
+              <TabsTrigger value="In Progress">Active</TabsTrigger>
+              <TabsTrigger value="Validated">Validated</TabsTrigger>
+              <TabsTrigger value="Rejected">Rejected</TabsTrigger>
             </TabsList>
             
             <div className="flex space-x-2">
@@ -183,272 +309,25 @@ const Dashboard = () => {
           
           <TabsContent value="all" className="mt-0">
             <div className="grid grid-cols-1 gap-4">
-              {filteredHypotheses.length > 0 ? (
-                filteredHypotheses.map((hypothesis) => (
-                  <Card key={hypothesis.id} className="overflow-hidden animate-fade-in">
-                    <CardHeader className="pb-3">
-                      <div className="flex justify-between items-start">
-                        <CardTitle className="text-xl">{hypothesis.title}</CardTitle>
-                        <Badge className={getStatusColor(hypothesis.status)}>
-                          <span className="flex items-center">
-                            {getStatusIcon(hypothesis.status)}
-                            <span className="ml-1">{hypothesis.status}</span>
-                          </span>
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    
-                    <CardContent>
-                      <div className="flex flex-col sm:flex-row sm:justify-between gap-4 sm:items-center">
-                        <div className="flex-1">
-                          <div className="mb-1 flex justify-between items-center">
-                            <span className="text-sm">Test Progress</span>
-                            <span className="text-sm font-medium">{hypothesis.progress}%</span>
-                          </div>
-                          <Progress value={hypothesis.progress} className="h-2" />
-                        </div>
-                        
-                        <div className="flex items-center space-x-4">
-                          {hypothesis.status === 'In Progress' && (
-                            <div className="flex items-center space-x-2 text-sm text-amber-600">
-                              <Clock className="h-4 w-4" />
-                              <span>{hypothesis.daysLeft} days left</span>
-                            </div>
-                          )}
-                          
-                          {(hypothesis.status === 'Validated' || hypothesis.status === 'Rejected') && (
-                            <div className="flex items-center space-x-2 text-sm">
-                              <AlertCircle className="h-4 w-4" />
-                              <span>{hypothesis.confidence}% confidence</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                    
-                    <CardFooter className="border-t pt-4 pb-4 flex justify-between">
-                      <div className="flex space-x-2">
-                        <Button size="sm" variant="outline">
-                          <BarChart3 className="h-4 w-4 mr-2" />
-                          View Results
-                        </Button>
-                        
-                        {hypothesis.status === 'In Progress' && (
-                          <Button size="sm" variant="outline">
-                            <TestTube className="h-4 w-4 mr-2" />
-                            Test Design
-                          </Button>
-                        )}
-                      </div>
-                      
-                      <Button size="sm" variant="ghost" className="text-muted-foreground">
-                        Details
-                        <ChevronRight className="h-4 w-4 ml-1" />
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground mb-4">No hypotheses found.</p>
-                  <Button asChild>
-                    <Link to="/hypothesis-builder">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create your first hypothesis
-                    </Link>
-                  </Button>
-                </div>
-              )}
+              {renderHypothesisList(filteredHypotheses)}
             </div>
           </TabsContent>
           
-          <TabsContent value="active" className="mt-0">
+          <TabsContent value="In Progress" className="mt-0">
             <div className="grid grid-cols-1 gap-4">
-              {filteredHypotheses.filter(h => h.status === 'In Progress').length > 0 ? (
-                filteredHypotheses
-                  .filter(h => h.status === 'In Progress')
-                  .map((hypothesis) => (
-                    <Card key={hypothesis.id} className="overflow-hidden animate-fade-in">
-                      <CardHeader className="pb-3">
-                        <div className="flex justify-between items-start">
-                          <CardTitle className="text-xl">{hypothesis.title}</CardTitle>
-                          <Badge className={getStatusColor(hypothesis.status)}>
-                            <span className="flex items-center">
-                              {getStatusIcon(hypothesis.status)}
-                              <span className="ml-1">{hypothesis.status}</span>
-                            </span>
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      
-                      <CardContent>
-                        <div className="flex flex-col sm:flex-row sm:justify-between gap-4 sm:items-center">
-                          <div className="flex-1">
-                            <div className="mb-1 flex justify-between items-center">
-                              <span className="text-sm">Test Progress</span>
-                              <span className="text-sm font-medium">{hypothesis.progress}%</span>
-                            </div>
-                            <Progress value={hypothesis.progress} className="h-2" />
-                          </div>
-                          
-                          <div className="flex items-center space-x-2 text-sm text-amber-600">
-                            <Clock className="h-4 w-4" />
-                            <span>{hypothesis.daysLeft} days left</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                      
-                      <CardFooter className="border-t pt-4 pb-4 flex justify-between">
-                        <div className="flex space-x-2">
-                          <Button size="sm" variant="outline">
-                            <BarChart3 className="h-4 w-4 mr-2" />
-                            View Results
-                          </Button>
-                          
-                          <Button size="sm" variant="outline">
-                            <TestTube className="h-4 w-4 mr-2" />
-                            Test Design
-                          </Button>
-                        </div>
-                        
-                        <Button size="sm" variant="ghost" className="text-muted-foreground">
-                          Details
-                          <ChevronRight className="h-4 w-4 ml-1" />
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  ))
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground mb-4">No active hypotheses found.</p>
-                  <Button asChild>
-                    <Link to="/hypothesis-builder">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create a new hypothesis
-                    </Link>
-                  </Button>
-                </div>
-              )}
+              {renderHypothesisList(filteredHypotheses.filter(h => h.status === 'In Progress'))}
             </div>
           </TabsContent>
           
-          <TabsContent value="validated" className="mt-0">
+          <TabsContent value="Validated" className="mt-0">
             <div className="grid grid-cols-1 gap-4">
-              {filteredHypotheses.filter(h => h.status === 'Validated').length > 0 ? (
-                filteredHypotheses
-                  .filter(h => h.status === 'Validated')
-                  .map((hypothesis) => (
-                    <Card key={hypothesis.id} className="overflow-hidden animate-fade-in">
-                      <CardHeader className="pb-3">
-                        <div className="flex justify-between items-start">
-                          <CardTitle className="text-xl">{hypothesis.title}</CardTitle>
-                          <Badge className={getStatusColor(hypothesis.status)}>
-                            <span className="flex items-center">
-                              {getStatusIcon(hypothesis.status)}
-                              <span className="ml-1">{hypothesis.status}</span>
-                            </span>
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      
-                      <CardContent>
-                        <div className="flex flex-col sm:flex-row sm:justify-between gap-4 sm:items-center">
-                          <div className="flex-1">
-                            <div className="mb-1 flex justify-between items-center">
-                              <span className="text-sm">Confidence Level</span>
-                              <span className="text-sm font-medium">{hypothesis.confidence}%</span>
-                            </div>
-                            <Progress value={hypothesis.confidence} className="h-2" />
-                          </div>
-                        </div>
-                      </CardContent>
-                      
-                      <CardFooter className="border-t pt-4 pb-4 flex justify-between">
-                        <div className="flex space-x-2">
-                          <Button size="sm" variant="outline">
-                            <BarChart3 className="h-4 w-4 mr-2" />
-                            View Results
-                          </Button>
-                        </div>
-                        
-                        <Button size="sm" variant="ghost" className="text-muted-foreground">
-                          Details
-                          <ChevronRight className="h-4 w-4 ml-1" />
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  ))
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground mb-4">No validated hypotheses found.</p>
-                  <Button asChild>
-                    <Link to="/hypothesis-builder">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create a new hypothesis
-                    </Link>
-                  </Button>
-                </div>
-              )}
+              {renderHypothesisList(filteredHypotheses.filter(h => h.status === 'Validated'))}
             </div>
           </TabsContent>
           
-          <TabsContent value="rejected" className="mt-0">
+          <TabsContent value="Rejected" className="mt-0">
             <div className="grid grid-cols-1 gap-4">
-              {filteredHypotheses.filter(h => h.status === 'Rejected').length > 0 ? (
-                filteredHypotheses
-                  .filter(h => h.status === 'Rejected')
-                  .map((hypothesis) => (
-                    <Card key={hypothesis.id} className="overflow-hidden animate-fade-in">
-                      <CardHeader className="pb-3">
-                        <div className="flex justify-between items-start">
-                          <CardTitle className="text-xl">{hypothesis.title}</CardTitle>
-                          <Badge className={getStatusColor(hypothesis.status)}>
-                            <span className="flex items-center">
-                              {getStatusIcon(hypothesis.status)}
-                              <span className="ml-1">{hypothesis.status}</span>
-                            </span>
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      
-                      <CardContent>
-                        <div className="flex flex-col sm:flex-row sm:justify-between gap-4 sm:items-center">
-                          <div className="flex-1">
-                            <div className="mb-1 flex justify-between items-center">
-                              <span className="text-sm">Confidence Level</span>
-                              <span className="text-sm font-medium">{hypothesis.confidence}%</span>
-                            </div>
-                            <Progress value={hypothesis.confidence} className="h-2" />
-                          </div>
-                        </div>
-                      </CardContent>
-                      
-                      <CardFooter className="border-t pt-4 pb-4 flex justify-between">
-                        <div className="flex space-x-2">
-                          <Button size="sm" variant="outline">
-                            <BarChart3 className="h-4 w-4 mr-2" />
-                            View Results
-                          </Button>
-                        </div>
-                        
-                        <Button size="sm" variant="ghost" className="text-muted-foreground">
-                          Details
-                          <ChevronRight className="h-4 w-4 ml-1" />
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  ))
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground mb-4">No rejected hypotheses found.</p>
-                  <Button asChild>
-                    <Link to="/hypothesis-builder">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create a new hypothesis
-                    </Link>
-                  </Button>
-                </div>
-              )}
+              {renderHypothesisList(filteredHypotheses.filter(h => h.status === 'Rejected'))}
             </div>
           </TabsContent>
         </Tabs>
@@ -461,21 +340,37 @@ const Dashboard = () => {
             </h3>
             
             <div className="space-y-4">
-              {hypotheses.slice(0, 3).map((hypothesis) => (
-                <div key={hypothesis.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
-                  <div>
-                    <p className="font-medium text-sm line-clamp-1">{hypothesis.title}</p>
-                    <div className="flex items-center mt-1 space-x-2">
-                      <Badge variant="outline" className="text-xs font-normal">
-                        {hypothesis.status}
-                      </Badge>
+              {loading ? (
+                Array(3).fill(0).map((_, index) => (
+                  <div key={`recent-skeleton-${index}`} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
+                    <div>
+                      <Skeleton className="h-4 w-48 mb-2" />
+                      <Skeleton className="h-3 w-24" />
                     </div>
+                    <Skeleton className="h-8 w-8 rounded-full" />
                   </div>
-                  <Button size="sm" variant="ghost" className="text-muted-foreground">
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
+                ))
+              ) : hypotheses.length > 0 ? (
+                hypotheses.slice(0, 3).map((hypothesis) => (
+                  <div key={hypothesis.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
+                    <div>
+                      <p className="font-medium text-sm line-clamp-1">{hypothesis.title}</p>
+                      <div className="flex items-center mt-1 space-x-2">
+                        <Badge variant="outline" className="text-xs font-normal">
+                          {hypothesis.status}
+                        </Badge>
+                      </div>
+                    </div>
+                    <Button size="sm" variant="ghost" className="text-muted-foreground">
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No hypotheses created yet.
+                </p>
+              )}
             </div>
             
             <div className="mt-4 text-center">

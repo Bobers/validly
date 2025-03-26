@@ -9,7 +9,15 @@ import Dashboard from "./pages/Dashboard";
 import HypothesisBuilder from "./pages/HypothesisBuilder";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+// Create a query client for React Query
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

@@ -1,17 +1,14 @@
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   PencilLine, 
   ChevronRight, 
   Target, 
-  Users, 
-  Calendar, 
   Gauge, 
-  BarChart3, 
   Check
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { 
   Select,
@@ -28,13 +25,16 @@ import {
   CardHeader,
   CardTitle, 
 } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { useToast } from "@/hooks/use-toast";
+import { hypothesesService } from '@/services/supabase';
+import { HypothesisFormData } from '@/types/supabase';
 
 const HypothesisForm = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<HypothesisFormData>({
     businessIdea: '',
     targetAudience: '',
     expectedOutcome: '',
@@ -67,7 +67,7 @@ const HypothesisForm = () => {
   };
   
   const handleGenerate = () => {
-    // In a real application, this would call an API to generate the hypothesis
+    // Generate the hypothesis text
     const hypothesis = `If we offer ${formData.businessIdea} to ${formData.targetAudience}, then we will see ${formData.expectedOutcome} within ${formData.timeframe} days, which we will measure using ${formData.measurementMethod} with a success threshold of ${formData.successCriteria}.`;
     
     setGeneratedHypothesis(hypothesis);
@@ -76,6 +76,31 @@ const HypothesisForm = () => {
       title: "Hypothesis Generated",
       description: "Your hypothesis has been successfully created.",
     });
+  };
+
+  const handleSubmit = async () => {
+    try {
+      setIsSubmitting(true);
+      // Save to Supabase
+      await hypothesesService.create(formData);
+      
+      toast({
+        title: "Hypothesis Saved",
+        description: "Your hypothesis has been saved to the database.",
+      });
+      
+      // Redirect to dashboard
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Error saving hypothesis:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save hypothesis. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
   const renderStepContent = () => {
@@ -307,12 +332,23 @@ const HypothesisForm = () => {
             <ChevronRight className="h-4 w-4" />
           </Button>
         ) : (
-          <Button
-            onClick={handleGenerate}
-            disabled={!isStepComplete()}
-          >
-            Generate Hypothesis
-          </Button>
+          <>
+            {!generatedHypothesis ? (
+              <Button
+                onClick={handleGenerate}
+                disabled={!isStepComplete()}
+              >
+                Generate Hypothesis
+              </Button>
+            ) : (
+              <Button 
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Saving...' : 'Save Hypothesis'}
+              </Button>
+            )}
+          </>
         )}
       </CardFooter>
     </Card>
