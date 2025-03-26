@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Hypothesis, HypothesisStatus, HypothesisFormData } from '../types/supabase';
 
@@ -160,6 +159,26 @@ export const hypothesesService = {
     } catch (err) {
       console.error('Failed to delete hypothesis:', err);
       return false; // Return false to indicate failure
+    }
+  },
+
+  // Analyze a hypothesis using AI
+  analyzeWithAI: async (hypothesis: Hypothesis): Promise<any> => {
+    try {
+      console.log('Sending hypothesis for analysis:', hypothesis.id);
+      const { data, error } = await supabase.functions.invoke('analyze-hypothesis', {
+        body: { hypothesis },
+      });
+      
+      if (error) {
+        console.error('Error analyzing hypothesis:', error);
+        throw error;
+      }
+      
+      return data;
+    } catch (err) {
+      console.error('Failed to analyze hypothesis:', err);
+      throw err; // We throw here to handle it in the component
     }
   }
 };

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -197,16 +196,17 @@ const Dashboard = () => {
             )}
           </div>
           
-          <Button size="sm" variant="ghost" className="text-muted-foreground">
-            Details
-            <ChevronRight className="h-4 w-4 ml-1" />
+          <Button size="sm" variant="ghost" className="text-muted-foreground" asChild>
+            <Link to={`/hypothesis/${hypothesis.id}`}>
+              Details
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Link>
           </Button>
         </CardFooter>
       </Card>
     ));
   };
   
-  // Count statistics
   const validatedCount = hypotheses.filter(h => h.status === 'Validated').length;
   const inProgressCount = hypotheses.filter(h => h.status === 'In Progress').length;
   

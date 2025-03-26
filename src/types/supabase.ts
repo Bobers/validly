@@ -16,6 +16,7 @@ export interface Hypothesis {
   confidence: number;
   created_at: string;
   user_id: string | null;
+  analysis?: any; // Optional property to store AI analysis
 }
 
 export interface HypothesisFormData {
