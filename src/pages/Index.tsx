@@ -1,8 +1,7 @@
-
 import { Link } from 'react-router-dom';
 import { 
   PencilLine, 
-  Flask, 
+  TestTube, 
   BarChart, 
   Database, 
   BrainCircuit, 
@@ -11,7 +10,8 @@ import {
   BarChart3,
   Target,
   Lightbulb,
-  Gauge
+  Gauge,
+  Users2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Navbar from '@/components/Navbar';
@@ -54,7 +54,7 @@ const Index = () => {
               <FeatureCard 
                 title="Test Design Laboratory"
                 description="Create efficient, valid test methodologies based on your hypothesis with sample size calculations and bias detection."
-                icon={<Flask className="h-6 w-6" />}
+                icon={<TestTube className="h-6 w-6" />}
                 delay={200}
               />
               
@@ -125,7 +125,7 @@ const Index = () => {
               
               <div className="glass-card rounded-2xl p-8 text-center animate-fade-in" style={{ animationDelay: '200ms' }}>
                 <div className="bg-primary/10 text-primary h-12 w-12 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Flask className="h-6 w-6" />
+                  <TestTube className="h-6 w-6" />
                 </div>
                 <h3 className="font-semibold mb-2">Design Test</h3>
                 <p className="text-sm text-muted-foreground">
@@ -194,7 +194,7 @@ const Index = () => {
                   "Conversion path tracking",
                   "Comparative analysis",
                 ]}
-                icon={<Users className="h-6 w-6" />}
+                icon={<Users2 className="h-6 w-6" />}
                 isPopular={true}
                 delay={200}
               />

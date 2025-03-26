@@ -1,9 +1,8 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   PencilLine, 
-  Flask, 
+  TestTube, 
   BarChart3, 
   Plus, 
   Clock, 
@@ -31,7 +30,6 @@ import Navbar from '@/components/Navbar';
 import GlassMorphicCard from '@/components/GlassMorphicCard';
 import AnimatedGradient from '@/components/AnimatedGradient';
 
-// Mock data
 const hypotheses = [
   {
     id: 1,
@@ -497,7 +495,7 @@ const Dashboard = () => {
           
           <GlassMorphicCard className="p-6 animate-fade-in" style={{ animationDelay: '100ms' }}>
             <h3 className="text-lg font-semibold mb-4 flex items-center">
-              <Flask className="h-5 w-5 text-primary mr-2" />
+              <TestTube className="h-5 w-5 text-primary mr-2" />
               Test Design Templates
             </h3>
             

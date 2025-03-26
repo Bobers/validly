@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { 
   ArrowLeft, 
   PencilLine, 
-  Flask, 
+  TestTube, 
   BarChart3, 
   Target, 
   Database, 
@@ -77,7 +77,7 @@ const HypothesisBuilder = () => {
                 
                 <div className="flex items-start">
                   <div className="bg-primary/10 text-primary h-8 w-8 rounded-full flex items-center justify-center mt-0.5 mr-3 flex-shrink-0">
-                    <Flask className="h-4 w-4" />
+                    <TestTube className="h-4 w-4" />
                   </div>
                   <div>
                     <p className="font-medium text-sm">Think About Testing</p>
