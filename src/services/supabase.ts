@@ -17,7 +17,10 @@ export const hypothesesService = {
         throw error;
       }
       
-      return data || [];
+      return (data || []).map(item => ({
+        ...item,
+        status: item.status as HypothesisStatus
+      }));
     } catch (err) {
       console.error('Failed to fetch hypotheses:', err);
       return []; // Return empty array instead of throwing to prevent UI crashes
@@ -38,7 +41,10 @@ export const hypothesesService = {
         throw error;
       }
       
-      return data || [];
+      return (data || []).map(item => ({
+        ...item,
+        status: item.status as HypothesisStatus
+      }));
     } catch (err) {
       console.error(`Failed to fetch ${status} hypotheses:`, err);
       return []; // Return empty array instead of throwing
@@ -59,7 +65,10 @@ export const hypothesesService = {
         throw error;
       }
       
-      return data;
+      return data ? {
+        ...data,
+        status: data.status as HypothesisStatus
+      } : null;
     } catch (err) {
       console.error('Failed to fetch hypothesis by ID:', err);
       return null; // Return null instead of throwing
@@ -99,7 +108,10 @@ export const hypothesesService = {
         throw error;
       }
       
-      return data;
+      return data ? {
+        ...data,
+        status: data.status as HypothesisStatus
+      } : null;
     } catch (err) {
       console.error('Failed to create hypothesis:', err);
       return null; // Return null instead of throwing
@@ -121,7 +133,10 @@ export const hypothesesService = {
         throw error;
       }
       
-      return data;
+      return data ? {
+        ...data,
+        status: data.status as HypothesisStatus
+      } : null;
     } catch (err) {
       console.error('Failed to update hypothesis:', err);
       return null; // Return null instead of throwing
