@@ -1,20 +1,6 @@
 
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 import { Hypothesis, HypothesisStatus, HypothesisFormData } from '../types/supabase';
-
-// Initialize the Supabase client
-// Use environment variables or fallback to empty strings to prevent immediate errors
-// Note: The actual values need to be set in your Supabase project settings
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-
-// Check if the environment variables are available after the component mounts
-// This avoids throwing errors during static build time
-if (!supabaseUrl || !supabaseKey) {
-  console.warn('Supabase environment variables are missing. Please connect your Supabase project in the Lovable interface.');
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Hypotheses services
 export const hypothesesService = {
